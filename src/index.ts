@@ -82,7 +82,7 @@ async function main() {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           try {
             console.log('🧪 Dashboard triggered test run');
-            const result = await schedulerService.testRun();
+            await schedulerService.testRun();
             res.end(JSON.stringify({ 
               success: true, 
               message: 'Test completed successfully. Check console logs for details.'
@@ -104,7 +104,7 @@ async function main() {
             const result = await schedulerService.runWeeklyScheduling();
             res.end(JSON.stringify({ 
               success: true, 
-              count: result?.length || 0,
+              count: Array.isArray(result) ? result.length : 0,
               message: 'Weekly scheduling completed successfully'
             }));
           } catch (error) {
