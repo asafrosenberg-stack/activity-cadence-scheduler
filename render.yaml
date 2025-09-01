@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: activity-cadence-scheduler
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
