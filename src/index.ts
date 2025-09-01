@@ -59,29 +59,8 @@ async function main() {
         // Dashboard route
         if (url === '/') {
           try {
-            // Try multiple possible paths for the HTML file
-            let dashboardHtml: string;
-            const possiblePaths = [
-              join(__dirname, 'views', 'dashboard.html'),
-              join(__dirname, '..', 'src', 'views', 'dashboard.html'),
-              join(process.cwd(), 'src', 'views', 'dashboard.html'),
-              join(process.cwd(), 'dist', 'views', 'dashboard.html')
-            ];
-            
-            let found = false;
-            for (const path of possiblePaths) {
-              try {
-                dashboardHtml = readFileSync(path, 'utf8');
-                found = true;
-                break;
-              } catch (e) {
-                // Continue to next path
-              }
-            }
-            
-            if (!found) {
-              // Fallback: inline HTML dashboard
-              dashboardHtml = `
+            // Fallback: inline HTML dashboard (always use this for reliability)
+            const dashboardHtml = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -179,7 +158,6 @@ async function main() {
     </script>
 </body>
 </html>`;
-            }
             
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(dashboardHtml);
