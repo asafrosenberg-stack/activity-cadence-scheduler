@@ -58,11 +58,138 @@ async function main() {
       try {
         // Dashboard route
         if (url === '/') {
-          const dashboardPath = join(__dirname, 'views', 'dashboard.html');
-          const dashboardHtml = readFileSync(dashboardPath, 'utf8');
-          res.writeHead(200, { 'Content-Type': 'text/html' });
-          res.end(dashboardHtml);
-          return;
+          try {
+            // Try multiple possible paths for the HTML file
+            let dashboardHtml: string;
+            const possiblePaths = [
+              join(__dirname, 'views', 'dashboard.html'),
+              join(__dirname, '..', 'src', 'views', 'dashboard.html'),
+              join(process.cwd(), 'src', 'views', 'dashboard.html'),
+              join(process.cwd(), 'dist', 'views', 'dashboard.html')
+            ];
+            
+            let found = false;
+            for (const path of possiblePaths) {
+              try {
+                dashboardHtml = readFileSync(path, 'utf8');
+                found = true;
+                break;
+              } catch (e) {
+                // Continue to next path
+              }
+            }
+            
+            if (!found) {
+              // Fallback: inline HTML dashboard
+              dashboardHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Cadence Scheduler - Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; padding: 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
+        .header { background: #2c3e50; color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .dashboard { padding: 40px; }
+        .status-card { background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 30px; border-left: 4px solid #28a745; }
+        .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        .btn { padding: 20px; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 8px; display: none; }
+        .result.success { background: #d4edda; color: #155724; }
+        .result.error { background: #f8d7da; color: #721c24; }
+        .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #ffffff; border-radius: 50%; border-top-color: transparent; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Activity Cadence Scheduler</h1>
+            <p>Manage your weekly activity scheduling</p>
+        </div>
+        <div class="dashboard">
+            <div class="status-card">
+                <h3>✅ Scheduler Status: Active</h3>
+                <p>Next automated run: <strong>Monday at 09:00 Amsterdam time</strong></p>
+            </div>
+            <div class="button-grid">
+                <button class="btn btn-primary" onclick="testRun()">🧪 Test Run</button>
+                <button class="btn btn-success" onclick="runNow()">⚡ Run Now</button>
+            </div>
+            <div id="result" class="result"></div>
+        </div>
+    </div>
+    <script>
+        function showResult(message, type) {
+            const result = document.getElementById('result');
+            result.className = \`result \${type}\`;
+            result.innerHTML = message;
+            result.style.display = 'block';
+        }
+        async function testRun() {
+            const button = event.target;
+            button.disabled = true;
+            button.innerHTML = '<span class="loading-spinner"></span> Running Test...';
+            showResult('🧪 Starting test run...', 'loading');
+            try {
+                const response = await fetch('/api/test', { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    showResult('✅ Test completed successfully!', 'success');
+                } else {
+                    showResult(\`❌ Test failed: \${result.error}\`, 'error');
+                }
+            } catch (error) {
+                showResult(\`❌ Error: \${error.message}\`, 'error');
+            }
+            button.disabled = false;
+            button.innerHTML = '🧪 Test Run';
+        }
+        async function runNow() {
+            if (!confirm('This will schedule activities for next week. Continue?')) return;
+            const button = event.target;
+            button.disabled = true;
+            button.innerHTML = '<span class="loading-spinner"></span> Scheduling...';
+            showResult('⚡ Starting weekly scheduling...', 'loading');
+            try {
+                const response = await fetch('/api/run', { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    showResult(\`✅ Scheduling completed! Scheduled \${result.count} activities\`, 'success');
+                } else {
+                    showResult(\`❌ Scheduling failed: \${result.error}\`, 'error');
+                }
+            } catch (error) {
+                showResult(\`❌ Error: \${error.message}\`, 'error');
+            }
+            button.disabled = false;
+            button.innerHTML = '⚡ Run Now';
+        }
+    </script>
+</body>
+</html>`;
+            }
+            
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(dashboardHtml);
+            return;
+          } catch (error) {
+            console.error('Dashboard error:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Failed to load dashboard' }));
+            return;
+          }
         }
         
         // Health check route
