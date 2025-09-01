@@ -3,8 +3,6 @@ import cron from 'node-cron';
 import { SchedulerService } from './scheduler-service';
 import { loadConfig } from './utils/config';
 import { createServer } from 'http';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
 dotenv.config();
 
