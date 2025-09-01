@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Cadence Scheduler - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+        
+        .dashboard {
+            padding: 40px;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .status-card h3 {
+            color: #28a745;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            padding: 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .result.loading {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .schedule-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .schedule-info h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Activity Cadence Scheduler</h1>
+            <p>Manage your weekly activity scheduling</p>
+        </div>
+        
+        <div class="dashboard">
+            <div class="status-card">
+                <h3>✅ Scheduler Status: Active</h3>
+                <p>Next automated run: <strong>Monday at 09:00 Amsterdam time</strong></p>
+                <p>Service URL: <strong id="service-url">Loading...</strong></p>
+            </div>
+            
+            <div class="button-grid">
+                <button class="btn btn-primary" onclick="testRun()">
+                    🧪 Test Run
+                </button>
+                
+                <button class="btn btn-success" onclick="runNow()">
+                    ⚡ Run Now
+                </button>
+                
+                <a href="/logs" class="btn btn-info">
+                    📋 View Logs
+                </a>
+                
+                <a href="https://notion.so" target="_blank" class="btn btn-secondary">
+                    📝 Open Notion
+                </a>
+            </div>
+            
+            <div id="result" class="result"></div>
+            
+            <div class="schedule-info">
+                <h4>📅 Scheduling Rules</h4>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Writing: 2x/week, prefers 08:00-10:00 or 16:00-18:00</li>
+                    <li>Tennis & Gym: Cannot be on same day, need 1-day gap between same type</li>
+                    <li>No activity type can be scheduled twice on the same day</li>
+                    <li>30-minute buffer between all activities</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>🤖 Activity Cadence Scheduler v1.0 - Running on Render.com</p>
+        </div>
+    </div>
+
+    <script>
+        // Set service URL
+        document.getElementById('service-url').textContent = window.location.host;
+        
+        function showResult(message, type) {
+            const result = document.getElementById('result');
+            result.className = `result ${type}`;
+            result.innerHTML = message;
+            result.style.display = 'block';
+        }
+        
+        function hideResult() {
+            document.getElementById('result').style.display = 'none';
+        }
+        
+        async function testRun() {
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            button.disabled = true;
+            button.innerHTML = '<span class="loading-spinner"></span> Running Test...';
+            
+            showResult('🧪 Starting test run...', 'loading');
+            
+            try {
+                const response = await fetch('/api/test', { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showResult(`✅ Test completed successfully!<br><br><strong>Results:</strong><br>${result.message}`, 'success');
+                } else {
+                    showResult(`❌ Test failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Error: ${error.message}`, 'error');
+            }
+            
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+        
+        async function runNow() {
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            if (!confirm('This will schedule activities for next week. Continue?')) {
+                return;
+            }
+            
+            button.disabled = true;
+            button.innerHTML = '<span class="loading-spinner"></span> Scheduling...';
+            
+            showResult('⚡ Starting weekly scheduling...', 'loading');
+            
+            try {
+                const response = await fetch('/api/run', { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showResult(`✅ Scheduling completed!<br><br><strong>Scheduled ${result.count} activities</strong><br>📧 Email summary sent<br>📝 Logged to Notion`, 'success');
+                } else {
+                    showResult(`❌ Scheduling failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Error: ${error.message}`, 'error');
+            }
+            
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+        
+        // Auto-hide results after 10 seconds
+        setInterval(() => {
+            const result = document.getElementById('result');
+            if (result.style.display === 'block' && !result.classList.contains('loading')) {
+                setTimeout(() => {
+                    result.style.display = 'none';
+                }, 10000);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
